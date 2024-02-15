@@ -4,25 +4,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-
-import java.net.URI;
 import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 
 public class Main {
 
     static ObjectMapper objectMapper = new ObjectMapper();
     static OkHttpClient client = new OkHttpClient();
-    public static WeatherResponse getWeatherData() {
+    public static WeatherResponse getWeatherData(String city) {
 
         try {
             var urlLink = HttpUrl.parse("http://api.weatherapi.com/v1/current.json")
                     .newBuilder()
                     .addQueryParameter("key", "[Your API key]")
-                    .addQueryParameter("q", "Bucharest")
+                    .addQueryParameter("q", city)
                     .build()
                     .toString();
 
@@ -50,28 +45,28 @@ public class Main {
             //Am rezolvat eroarea prin URLEncoder
             String urlString = String.format("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s", botToken, chatId, encodedMessage);
 
-            HttpClient httpClient = HttpClient.newHttpClient();
-            HttpRequest httpRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(urlString))
-                    .GET()
+            var request = new Request.Builder()
+                    .url(urlString)
                     .build();
 
-            HttpResponse<String> httpResponse = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            //System.out.println("Response from Telegram API: " + httpResponse.body());
+            client.newCall(request).execute();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
-        WeatherResponse weatherData = getWeatherData();
+        WeatherResponse weatherData = getWeatherData("Bucuresti");
         if(weatherData == null){
             System.out.println("A intervenit o eroare");
             sendTelegramMessage("A intervenit o eroare");
             return;
         }
-        String message = String.format("Temperatura astazi in %s o sa fie de %s grade Celsius.", weatherData.getLocation().getName(), weatherData.getCurrent().getTemp_c());
-//        System.out.println(message);
+        String message = String.format("Temperatura astazi in %s o sa fie de %s grade Celsius.",
+                weatherData.getLocation().getName(),
+                weatherData.getCurrent().getTemp_c());
+
         sendTelegramMessage(message);
     }
 }
